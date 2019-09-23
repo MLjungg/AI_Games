@@ -35,8 +35,6 @@ public class Player {
             }
         }
 
-        //alphaBeta(nextStates.elementAt(0), 3, Integer.MIN_VALUE, Integer.MAX_VALUE, gameState.getNextPlayer());
-        //score = evalFunction(nextStates.elementAt(1), gameState.getNextPlayer());
         return nextStates.elementAt(index);
     }
 
