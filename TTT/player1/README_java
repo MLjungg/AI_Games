@@ -24,6 +24,6 @@ If you want two algorithms to play against each other, create two folders, folde
 
 mkfifo pipe
 
-java -cp folder1 Main init verbose < pipe | java -cp folder2 Main > pipe
+java -cp folder1 Main verbose < pipe | java -cp folder2 init Main > pipe
 
 
