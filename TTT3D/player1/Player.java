@@ -26,20 +26,15 @@ public class Player {
         int score = 0;
         int tempScore = 0;
         int index = 0;
-        while (deadline.timeUntil() > 0.1) {
-            for (int i = 0; i < nextStates.size(); i++) {
-                tempScore = alphaBeta(nextStates.elementAt(i), 0, Integer.MIN_VALUE, Integer.MAX_VALUE, gameState.getNextPlayer());
-                if (tempScore > score) {
-                    score = tempScore;
-                    index = i;
-                }
+        for (int i = 0; i < nextStates.size(); i++) {
+            tempScore = alphaBeta(nextStates.elementAt(i), 3, Integer.MIN_VALUE, Integer.MAX_VALUE, gameState.getNextPlayer());
+            if (tempScore > score) {
+                score = tempScore;
+                index = i;
             }
-            return nextStates.elementAt(index);
         }
-        System.err.println("Times up!");
         return nextStates.elementAt(index);
     }
-
 
     public static int evalFunction(GameState gameState, int player) {
 
