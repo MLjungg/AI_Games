@@ -2,7 +2,8 @@ import java.util.*;
 
 public class Player {
     static int iAmPlayer;
-    static HashMap<String, Integer> 
+    static HashMap<String, Node> calculatedStates = new HashMap<String, Node>();
+    static boolean searchInterupted = false;
     /**
      * Performs a move
      *
@@ -16,6 +17,7 @@ public class Player {
 
         Vector<GameState> lNextStates = new Vector<GameState>();
         pState.findPossibleMoves(lNextStates);
+        iAmPlayer =  pState.getNextPlayer();
 
         if (lNextStates.size() == 0) {
             // Must play "pass" move if there are no other moves possible.
@@ -27,18 +29,32 @@ public class Player {
          * the best next state. This skeleton returns a random move instead.
          */
 
-        this.iAmPlayer =  pState.getNextPlayer();
 
-        int score = 0;
-        int tempScore = 0;
+        searchInterupted = false;
         int index = 0;
-        for (int i = 0; i < lNextStates.size(); i++) {
-            tempScore = alphaBeta(lNextStates.elementAt(i), 8, Integer.MIN_VALUE, Integer.MAX_VALUE, pState.getNextPlayer());
-            if (tempScore > score){
-                score = tempScore;
-                index = i;
+        int depth = 1;
+        while(true) {
+            int score = Integer.MIN_VALUE;
+            int tempScore = 0;
+            int tempIndex = 0;
+            //System.err.println(depth);
+            for (int i = 0; i < lNextStates.size(); i++) {
+                tempScore = alphaBeta(lNextStates.elementAt(i), depth, Integer.MIN_VALUE, Integer.MAX_VALUE, pState.getNextPlayer(), pDue);
+                if (tempScore > score) {
+                    score = tempScore;
+                    tempIndex = i;
+                }
+            }
+            // If we don't complete a whole iteration we are better off returning the previous value
+            if (searchInterupted){
+                break;
+            }
+            else{
+                index = tempIndex;
+                depth++;
             }
         }
+        //System.err.println(index);
         return lNextStates.elementAt(index);
     }
 
@@ -53,8 +69,21 @@ public class Player {
      *
      */
 
-    public static int checkIfStateAllreadyEvaluated(gamestate){
-        ff;
+
+    public static String createHashKey(GameState gameState){
+        StringBuilder key = new StringBuilder();
+        int row;
+        int col;
+        int cellValue;
+        for (int cell = 0; cell < gameState.NUMBER_OF_SQUARES; cell++) {
+            row = gameState.cellToRow(cell);
+            col = gameState.cellToCol(cell);
+            cellValue = gameState.get(row, col);
+            key.append(cellValue);
+        }
+
+        return key.toString();
+
     }
 
     public static int evalFunction(GameState gameState, int player) {
@@ -63,7 +92,6 @@ public class Player {
         HashMap<String, Integer> scoreMapO = new HashMap<String, Integer>();
         int row;
         int col;
-        int layer;
         int cellValue;
         int something;
         int numberOfRed = 0;
@@ -73,7 +101,6 @@ public class Player {
             row = gameState.cellToRow(cell);
             col = gameState.cellToCol(cell);
             cellValue = gameState.get(row, col);
-            //System.err.println(cellValue);
             if (cellValue == Constants.CELL_RED){
                 numberOfRed += 1;
             }
@@ -96,29 +123,43 @@ public class Player {
         else{
             value = numberOfWhite - numberOfRed;
         }
-        //System.err.println("Antalet röda: " + numberOfRed);
-        //System.err.println("Antalet Vita: " + numberOfWhite);
-        //System.err.println(value);
+
         return value;
     }
 
-    public static int alphaBeta (GameState gameState, int depth, int alpha, int beta, int player){
-
-        // Repeat stake check
-        checkIfStateAllreadyEvaluated(gamesState)
-
+    public static int alphaBeta (GameState gameState, int depth, int alpha, int beta, int player, Deadline deadline){
         Vector<GameState> nextStates = new Vector<GameState>();
         gameState.findPossibleMoves(nextStates);
-
         int value;
-        if (depth == 0 || nextStates.size() == 0){
+
+        if (deadline.timeUntil() < 100000000/10){
+            searchInterupted = true;
+        }
+
+
+        // Repeat stake check
+        String key = createHashKey(gameState);
+        if(calculatedStates.containsKey(key)){
+            Node node = calculatedStates.get(key);
+            if (node.depth > depth){
+                //System.err.println("Tvilling");
+                return node.value;
+            }
+        }
+
+        if (depth == 0 || nextStates.size() == 0 || searchInterupted){
             value = evalFunction(gameState, player);
             return value;
         }
         else if (player == 1){
             value = Integer.MIN_VALUE;
             for (GameState nextState: nextStates) {
-                value = Math.max(value, alphaBeta(nextState, depth-1, alpha, beta, 2));
+                value = Math.max(value, alphaBeta(nextState, depth-1, alpha, beta, 2, deadline));
+
+                // Lägg till värdet
+                Node node = new Node(value, depth);
+                calculatedStates.put(key, node);
+
                 alpha = Math.max(alpha, value);
                 if (beta <= alpha){
                     break;
@@ -128,7 +169,12 @@ public class Player {
         else{
             value = Integer.MAX_VALUE;
             for (GameState nextState:nextStates) {
-                value = Math.min(value, alphaBeta(nextState, depth-1, alpha, beta, 1));
+                value = Math.min(value, alphaBeta(nextState, depth-1, alpha, beta, 1, deadline));
+
+                // Lägg till värdet
+                Node node = new Node(value, depth);
+                calculatedStates.put(key, node);
+
                 beta = Math.min(beta, value);
                 if (beta <= alpha){
                     break;
